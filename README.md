@@ -83,7 +83,7 @@ Settings → Secrets and variables → Actions:
 
 | Secret | Isi |
 |---|---|
-| `DOCKERHUB_USERNAME` | `nikoabdian` |
+| `DOCKERHUB_USERNAME` | `abdianniko` |
 | `DOCKERHUB_TOKEN` | Access token dari https://hub.docker.com/settings/security |
 
 ## Model yang dihasilkan
@@ -105,8 +105,8 @@ Random Forest dengan parameter hasil tuning Kriteria 2
 Lewat Docker Hub:
 
 ```bash
-docker pull nikoabdian/telco-churn-model:latest
-docker run -p 5005:8080 nikoabdian/telco-churn-model:latest
+docker pull abdianniko/telco-churn-model:latest
+docker run -p 5005:8080 abdianniko/telco-churn-model:latest
 ```
 
 Lewat MLflow secara langsung:

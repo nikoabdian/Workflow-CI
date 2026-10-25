@@ -2,12 +2,12 @@ Tautan Docker Hub (Kriteria 3 - Advanced)
 ==========================================
 
 Docker Hub repository
-    https://hub.docker.com/r/nikoabdian/telco-churn-model
+    https://hub.docker.com/r/abdianniko/telco-churn-model
 
 Tag yang tersedia
-    nikoabdian/telco-churn-model:latest
-    nikoabdian/telco-churn-model:<nomor run CI>
-    nikoabdian/telco-churn-model:<commit SHA>
+    abdianniko/telco-churn-model:latest
+    abdianniko/telco-churn-model:<nomor run CI>
+    abdianniko/telco-churn-model:<commit SHA>
 
 Image dibangun otomatis oleh GitHub Actions pada berkas
 .github/workflows/ci.yml, langkah "Bangun Docker image dengan
@@ -15,14 +15,14 @@ mlflow build-docker", memakai perintah:
 
     mlflow models build-docker \
       --model-uri "runs:/<run_id>/model" \
-      --name "nikoabdian/telco-churn-model"
+      --name "abdianniko/telco-churn-model"
 
 
 Cara memakai image
 ------------------
 
-    docker pull nikoabdian/telco-churn-model:latest
-    docker run -p 5005:8080 nikoabdian/telco-churn-model:latest
+    docker pull abdianniko/telco-churn-model:latest
+    docker run -p 5005:8080 abdianniko/telco-churn-model:latest
 
 Model akan melayani permintaan pada:
 
@@ -46,7 +46,7 @@ Persiapan yang diperlukan sebelum workflow berjalan
 Tambahkan dua secrets pada repository GitHub ini melalui
 Settings -> Secrets and variables -> Actions -> New repository secret:
 
-    DOCKERHUB_USERNAME = nikoabdian
+    DOCKERHUB_USERNAME = abdianniko
     DOCKERHUB_TOKEN    = <access token Docker Hub>
 
 Access token dibuat di https://hub.docker.com/settings/security
