@@ -139,21 +139,29 @@ jobs:
 
       - name: Commit artefak ke repository
         if: github.event_name != 'pull_request'
+        continue-on-error: true
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Saat workflow dijalankan ulang, runner memakai commit lama sementara
+          # remote sudah bergerak maju. Pindah ke main terbaru dulu agar push
+          # tidak ditolak. Folder mlruns/ dan MLProject/ tidak dilacak git,
+          # sehingga isinya aman saat berpindah branch.
+          git fetch origin main
+          git checkout -B main origin/main
+
           mkdir -p artefak_terbaru
           cp -r mlruns/*/${{ steps.runid.outputs.run_id }}/artifacts/* artefak_terbaru/
           cp MLProject/metric_info.json artefak_terbaru/
           echo "${{ steps.runid.outputs.run_id }}" > artefak_terbaru/run_id.txt
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add artefak_terbaru/
           if git diff --staged --quiet; then
             echo "Tidak ada perubahan artefak."
           else
             git commit -m "chore: artefak model dari CI run #${{ github.run_number }}"
-            git push
+            git push origin main
           fi
 
       # ------------------------------------------------------------------
