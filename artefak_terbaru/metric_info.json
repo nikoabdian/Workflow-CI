@@ -1,5 +1,5 @@
 {
-  "run_id": "ca54d8f6e3a7430b8face273c059cd56",
+  "run_id": "2477ffb05df443b1ab3d4c4ad89d28e6",
   "experiment": "Telco Churn - CI Retraining",
   "params": {
     "n_estimators": 200,
@@ -15,7 +15,7 @@
     "test_recall_score": 0.75,
     "test_f1_score": 0.6305084745762712,
     "test_roc_auc": 0.8412768426859861,
-    "test_log_loss": 0.4705481561261401,
+    "test_log_loss": 0.47054815612614004,
     "test_balanced_accuracy": 0.7617376573088093,
     "test_average_precision": 0.6572768217315836,
     "test_matthews_corrcoef": 0.4797077419449236,
@@ -26,6 +26,6 @@
     "test_true_positive": 279.0,
     "cv_f1_mean": 0.639161803808839,
     "cv_f1_std": 0.015396078643597022,
-    "training_duration_seconds": 0.31148695945739746
+    "training_duration_seconds": 0.23821711540222168
   }
 }
