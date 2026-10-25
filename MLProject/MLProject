@@ -1,0 +1,37 @@
+name: telco-churn-ci
+
+conda_env: conda.yaml
+
+entry_points:
+  main:
+    parameters:
+      data_path:
+        type: str
+        default: "telco_preprocessing/telco_clean.csv"
+      n_estimators:
+        type: int
+        default: 200
+      max_depth:
+        type: int
+        default: 8
+      min_samples_leaf:
+        type: int
+        default: 1
+      class_weight:
+        type: str
+        default: "balanced"
+      test_size:
+        type: float
+        default: 0.2
+      cv_folds:
+        type: int
+        default: 5
+    command: >
+      python modelling.py
+      --data_path {data_path}
+      --n_estimators {n_estimators}
+      --max_depth {max_depth}
+      --min_samples_leaf {min_samples_leaf}
+      --class_weight {class_weight}
+      --test_size {test_size}
+      --cv_folds {cv_folds}

@@ -1,0 +1,53 @@
+Tautan Docker Hub (Kriteria 3 - Advanced)
+==========================================
+
+Docker Hub repository
+    https://hub.docker.com/r/nikoabdian/telco-churn-model
+
+Tag yang tersedia
+    nikoabdian/telco-churn-model:latest
+    nikoabdian/telco-churn-model:<nomor run CI>
+    nikoabdian/telco-churn-model:<commit SHA>
+
+Image dibangun otomatis oleh GitHub Actions pada berkas
+.github/workflows/ci.yml, langkah "Bangun Docker image dengan
+mlflow build-docker", memakai perintah:
+
+    mlflow models build-docker \
+      --model-uri "runs:/<run_id>/model" \
+      --name "nikoabdian/telco-churn-model"
+
+
+Cara memakai image
+------------------
+
+    docker pull nikoabdian/telco-churn-model:latest
+    docker run -p 5005:8080 nikoabdian/telco-churn-model:latest
+
+Model akan melayani permintaan pada:
+
+    http://127.0.0.1:5005/invocations   (prediksi)
+    http://127.0.0.1:5005/ping          (health check)
+
+Contoh permintaan prediksi:
+
+    curl -X POST http://127.0.0.1:5005/invocations \
+      -H "Content-Type: application/json" \
+      -d '{"dataframe_split": {"columns": [...23 nama fitur...],
+                               "data": [[...23 nilai...]]}}'
+
+Daftar 23 nama fitur dapat dilihat pada baris header berkas
+MLProject/telco_preprocessing/telco_clean.csv (seluruh kolom kecuali "Churn").
+
+
+Persiapan yang diperlukan sebelum workflow berjalan
+---------------------------------------------------
+
+Tambahkan dua secrets pada repository GitHub ini melalui
+Settings -> Secrets and variables -> Actions -> New repository secret:
+
+    DOCKERHUB_USERNAME = nikoabdian
+    DOCKERHUB_TOKEN    = <access token Docker Hub>
+
+Access token dibuat di https://hub.docker.com/settings/security
+dengan permission "Read, Write, Delete".

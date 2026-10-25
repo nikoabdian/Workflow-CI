@@ -1,0 +1,17 @@
+# Hasil run lokal — dibangkitkan ulang oleh GitHub Actions
+mlruns/
+MLProject/mlruns/
+MLProject/artefak_ci/
+MLProject/run_id.txt
+MLProject/metric_info.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# OS
+Thumbs.db
+.DS_Store

@@ -1,0 +1,205 @@
+name: CI - MLflow Project Retraining
+
+# Workflow CI untuk melatih ulang model secara otomatis ketika trigger
+# terpantik, menyimpan artefak ke repository ini, lalu membangun dan
+# mendorong Docker image ke Docker Hub.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "MLProject/**"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    branches: [main]
+  schedule:
+    # Setiap Senin pukul 02:00 UTC — re-training berkala.
+    - cron: "0 2 * * 1"
+  workflow_dispatch:
+    inputs:
+      n_estimators:
+        description: "Jumlah pohon Random Forest"
+        required: false
+        default: "200"
+      max_depth:
+        description: "Kedalaman maksimum (0 = tanpa batas)"
+        required: false
+        default: "8"
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_VERSION: "3.12.7"
+  IMAGE_NAME: telco-churn-model
+
+jobs:
+  retraining:
+    name: Latih ulang model dan bangun Docker image
+    runs-on: ubuntu-latest
+
+    steps:
+      # ------------------------------------------------------------------
+      # Persiapan
+      # ------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache dependencies pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('MLProject/conda.yaml') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            mlflow==2.19.0 \
+            scikit-learn==1.5.2 \
+            pandas==2.2.3 \
+            numpy==1.26.4 \
+            matplotlib==3.9.2 \
+            joblib==1.4.2
+
+      - name: Tampilkan versi MLflow
+        run: mlflow --version
+
+      # ------------------------------------------------------------------
+      # Pelatihan lewat MLflow Project
+      # ------------------------------------------------------------------
+      - name: Periksa dataset hasil preprocessing
+        run: |
+          ls -lh MLProject/telco_preprocessing/
+          python -c "import pandas as pd; d = pd.read_csv('MLProject/telco_preprocessing/telco_clean.csv'); print('Baris:', len(d), '| Kolom:', len(d.columns))"
+
+      - name: Jalankan MLflow Project
+        id: train
+        run: |
+          mlflow run MLProject \
+            --env-manager=local \
+            -P n_estimators=${{ github.event.inputs.n_estimators || '200' }} \
+            -P max_depth=${{ github.event.inputs.max_depth || '8' }}
+
+      - name: Ambil Run ID
+        id: runid
+        run: |
+          RUN_ID=$(cat MLProject/run_id.txt)
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "Run ID: $RUN_ID"
+
+      - name: Tampilkan ringkasan metrik
+        run: |
+          cat MLProject/metric_info.json
+
+          {
+            echo "## Hasil re-training"
+            echo ""
+            echo "- **Run ID**: \`${{ steps.runid.outputs.run_id }}\`"
+            echo "- **Commit**: \`${{ github.sha }}\`"
+            echo ""
+            echo "| Metrik | Nilai |"
+            echo "|---|---|"
+            python - <<'PY'
+          import json
+
+          with open("MLProject/metric_info.json", encoding="utf-8") as f:
+              data = json.load(f)
+
+          for nama in ("test_accuracy_score", "test_precision_score", "test_recall_score",
+                       "test_f1_score", "test_roc_auc", "cv_f1_mean"):
+              print(f"| {nama} | {data['metrics'][nama]:.4f} |")
+          PY
+          } >> $GITHUB_STEP_SUMMARY
+
+      # ------------------------------------------------------------------
+      # Skilled: simpan artefak ke repository
+      # ------------------------------------------------------------------
+      - name: Unggah artefak ke GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-artifacts-${{ github.run_number }}
+          path: |
+            mlruns/
+            MLProject/artefak_ci/
+            MLProject/metric_info.json
+          retention-days: 90
+
+      - name: Unggah model terlatih sebagai artefak terpisah
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model-${{ github.run_number }}
+          path: mlruns/*/${{ steps.runid.outputs.run_id }}/artifacts/model/
+          retention-days: 90
+
+      - name: Commit artefak ke repository
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p artefak_terbaru
+          cp -r mlruns/*/${{ steps.runid.outputs.run_id }}/artifacts/* artefak_terbaru/
+          cp MLProject/metric_info.json artefak_terbaru/
+          echo "${{ steps.runid.outputs.run_id }}" > artefak_terbaru/run_id.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add artefak_terbaru/
+          if git diff --staged --quiet; then
+            echo "Tidak ada perubahan artefak."
+          else
+            git commit -m "chore: artefak model dari CI run #${{ github.run_number }}"
+            git push
+          fi
+
+      # ------------------------------------------------------------------
+      # Advanced: bangun Docker image dan dorong ke Docker Hub
+      # ------------------------------------------------------------------
+      - name: Set up Docker Buildx
+        if: github.event_name != 'pull_request'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login ke Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Bangun Docker image dengan mlflow build-docker
+        if: github.event_name != 'pull_request'
+        run: |
+          mlflow models build-docker \
+            --model-uri "runs:/${{ steps.runid.outputs.run_id }}/model" \
+            --name "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}"
+
+      - name: Beri tag dan dorong ke Docker Hub
+        if: github.event_name != 'pull_request'
+        run: |
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}"
+
+          docker tag "$IMAGE:latest" "$IMAGE:${{ github.run_number }}"
+          docker tag "$IMAGE:latest" "$IMAGE:${{ github.sha }}"
+
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${{ github.run_number }}"
+          docker push "$IMAGE:${{ github.sha }}"
+
+          {
+            echo ""
+            echo "## Docker image"
+            echo ""
+            echo "- \`$IMAGE:latest\`"
+            echo "- \`$IMAGE:${{ github.run_number }}\`"
+            echo ""
+            echo "Menjalankan image:"
+            echo ""
+            echo '```bash'
+            echo "docker pull $IMAGE:latest"
+            echo "docker run -p 5005:8080 $IMAGE:latest"
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
