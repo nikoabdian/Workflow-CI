@@ -181,9 +181,15 @@ jobs:
       - name: Bangun Docker image dengan mlflow build-docker
         if: github.event_name != 'pull_request'
         run: |
+          # --env-manager local wajib di sini. Tanpa flag ini MLflow memakai
+          # virtualenv, yang memaksa base image berpindah dari python:3.12-slim
+          # ke ubuntu:20.04, lalu mencoba memasang python3.9 lewat apt dan
+          # gagal. Dengan 'local', dependensi model dipasang langsung dengan
+          # pip ke atas base image python resmi.
           mlflow models build-docker \
             --model-uri "runs:/${{ steps.runid.outputs.run_id }}/model" \
-            --name "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}"
+            --name "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}" \
+            --env-manager local
 
       - name: Beri tag dan dorong ke Docker Hub
         if: github.event_name != 'pull_request'
