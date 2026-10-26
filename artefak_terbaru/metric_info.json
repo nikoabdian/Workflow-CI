@@ -1,5 +1,5 @@
 {
-  "run_id": "2477ffb05df443b1ab3d4c4ad89d28e6",
+  "run_id": "a4ad69b898d84094b7eef6a676b5e674",
   "experiment": "Telco Churn - CI Retraining",
   "params": {
     "n_estimators": 200,
@@ -26,6 +26,6 @@
     "test_true_positive": 279.0,
     "cv_f1_mean": 0.639161803808839,
     "cv_f1_std": 0.015396078643597022,
-    "training_duration_seconds": 0.23821711540222168
+    "training_duration_seconds": 0.23702359199523926
   }
 }
